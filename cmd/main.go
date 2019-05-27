@@ -70,7 +70,7 @@ func main() {
 
 	if len(flag.Args()) == 1 && flag.Arg(0) == "version" {
 		log.SetFlags(0)
-		log.Printf("shard v0.1.0\nCommit:     %s\nRelease:    %s\nGo version: %s %s/%s\nBuild Date: %s\n",
+		log.Printf("shard v0.2.0\nCommit:     %s\nRelease:    %s\nGo version: %s %s/%s\nBuild Date: %s\n",
 			githash, build.Release, runtime.Version(), runtime.GOOS, runtime.GOARCH, builddate)
 		return
 	} else if len(flag.Args()) != 0 {
