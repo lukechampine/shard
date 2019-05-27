@@ -1,4 +1,4 @@
-package main
+package shard
 
 import (
 	"os"
@@ -10,19 +10,19 @@ import (
 	"gitlab.com/NebulousLabs/Sia/types"
 )
 
-type shardPersist struct {
+type PersistData struct {
 	Height     types.BlockHeight
 	Hosts      map[string][]byte
 	LastChange modules.ConsensusChangeID
 }
 
-type persister interface {
-	save(shardPersist) error
-	load(*shardPersist) error
+type Persister interface {
+	Save(PersistData) error
+	Load(*PersistData) error
 }
 
 func (s *SHARD) save() error {
-	return s.persist.save(shardPersist{
+	return s.persist.Save(PersistData{
 		Height:     s.height,
 		Hosts:      s.hosts,
 		LastChange: s.lastChange,
@@ -30,8 +30,8 @@ func (s *SHARD) save() error {
 }
 
 func (s *SHARD) load() error {
-	var data shardPersist
-	if err := s.persist.load(&data); err != nil && !os.IsNotExist(err) {
+	var data PersistData
+	if err := s.persist.Load(&data); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if data.Hosts == nil {
@@ -52,18 +52,18 @@ var meta = persist.Metadata{
 	Version: "0.1.0",
 }
 
-type jsonPersist struct {
+type JSONPersist struct {
 	path string
 }
 
-func (p jsonPersist) save(data shardPersist) error {
+func (p JSONPersist) Save(data PersistData) error {
 	return persist.SaveJSON(meta, data, p.path)
 }
 
-func (p jsonPersist) load(data *shardPersist) error {
+func (p JSONPersist) Load(data *PersistData) error {
 	return persist.LoadJSON(meta, data, p.path)
 }
 
-func newJSONPersist(dir string) jsonPersist {
-	return jsonPersist{filepath.Join(dir, "persist.json")}
+func NewJSONPersist(dir string) JSONPersist {
+	return JSONPersist{filepath.Join(dir, "persist.json")}
 }

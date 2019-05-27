@@ -13,10 +13,11 @@ import (
 	"gitlab.com/NebulousLabs/Sia/build"
 	"gitlab.com/NebulousLabs/Sia/modules/consensus"
 	"gitlab.com/NebulousLabs/Sia/modules/gateway"
+	"lukechampine.com/shard"
 )
 
 type server struct {
-	shard *SHARD
+	shard *shard.SHARD
 }
 
 func (s *server) handlerSynced(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -46,7 +47,7 @@ func (s *server) handlerHost(w http.ResponseWriter, req *http.Request, ps httpro
 	w.Write(ann)
 }
 
-func newServer(shard *SHARD) http.Handler {
+func newServer(shard *shard.SHARD) http.Handler {
 	srv := &server{shard}
 	mux := httprouter.New()
 	mux.GET("/synced", srv.handlerSynced)
@@ -85,7 +86,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	shard, err := newSHARD(cs, newJSONPersist(*persistDir))
+	shard, err := shard.New(cs, shard.NewJSONPersist(*persistDir))
 	if err != nil {
 		log.Fatal(err)
 	}

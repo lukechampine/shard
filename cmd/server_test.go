@@ -14,6 +14,7 @@ import (
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/types"
 	"gitlab.com/NebulousLabs/fastrand"
+	"lukechampine.com/shard"
 )
 
 type mockCS struct {
@@ -44,16 +45,16 @@ func (m *mockCS) sendHostAnnouncement(ann []byte) {
 }
 
 type memPersist struct {
-	shardPersist
+	shard.PersistData
 }
 
-func (p *memPersist) save(data shardPersist) error {
-	p.shardPersist = data
+func (p *memPersist) Save(data shard.PersistData) error {
+	p.PersistData = data
 	return nil
 }
 
-func (p *memPersist) load(data *shardPersist) error {
-	*data = p.shardPersist
+func (p *memPersist) Load(data *shard.PersistData) error {
+	*data = p.PersistData
 	return nil
 }
 
@@ -92,7 +93,7 @@ func getHost(h http.Handler, spk types.SiaPublicKey) ([]byte, error) {
 func TestServer(t *testing.T) {
 	cs := new(mockCS)
 	p := new(memPersist)
-	shard, err := newSHARD(cs, p)
+	shard, err := shard.New(cs, p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +147,7 @@ func TestServer(t *testing.T) {
 func TestServerThreadSafety(t *testing.T) {
 	cs := new(mockCS)
 	p := new(memPersist)
-	shard, err := newSHARD(cs, p)
+	shard, err := shard.New(cs, p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +194,7 @@ func TestServerThreadSafety(t *testing.T) {
 func BenchmarkServer(b *testing.B) {
 	cs := new(mockCS)
 	p := new(memPersist)
-	shard, err := newSHARD(cs, p)
+	shard, err := shard.New(cs, p)
 	if err != nil {
 		b.Fatal(err)
 	}

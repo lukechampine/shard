@@ -1,4 +1,4 @@
-package main
+package shard
 
 import (
 	"os"
@@ -10,7 +10,7 @@ import (
 	"gitlab.com/NebulousLabs/Sia/types"
 )
 
-type consensusSet interface {
+type ConsensusSet interface {
 	ConsensusSetSubscribe(modules.ConsensusSetSubscriber, modules.ConsensusChangeID, <-chan struct{}) error
 	Synced() bool
 }
@@ -21,8 +21,8 @@ type SHARD struct {
 	hostKeys   []string          // sorted
 	lastChange modules.ConsensusChangeID
 	queuedSave bool
-	cs         consensusSet
-	persist    persister
+	cs         ConsensusSet
+	persist    Persister
 	mu         sync.Mutex
 }
 
@@ -65,7 +65,7 @@ func (s *SHARD) HostAnnouncement(pubkey string) ([]byte, bool) {
 	return ann, ok
 }
 
-func newSHARD(cs consensusSet, p persister) (*SHARD, error) {
+func New(cs ConsensusSet, p Persister) (*SHARD, error) {
 	s := &SHARD{
 		hosts:   make(map[string][]byte),
 		cs:      cs,
