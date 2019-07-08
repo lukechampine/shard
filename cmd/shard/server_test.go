@@ -13,7 +13,7 @@ import (
 	"gitlab.com/NebulousLabs/Sia/crypto"
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/types"
-	"gitlab.com/NebulousLabs/fastrand"
+	"lukechampine.com/frand"
 	"lukechampine.com/shard"
 )
 
@@ -26,7 +26,7 @@ func (m *mockCS) ConsensusSetSubscribe(s modules.ConsensusSetSubscriber, ccid mo
 	// send genesis block
 	m.subscriber.ProcessConsensusChange(modules.ConsensusChange{
 		AppliedBlocks: []types.Block{types.GenesisBlock},
-		ID:            modules.ConsensusChangeID(crypto.HashBytes(fastrand.Bytes(12))),
+		ID:            modules.ConsensusChangeID(crypto.HashBytes(frand.Bytes(12))),
 	})
 	return nil
 }
@@ -40,7 +40,7 @@ func (m *mockCS) sendHostAnnouncement(ann []byte) {
 				ArbitraryData: [][]byte{ann},
 			}},
 		}},
-		ID: modules.ConsensusChangeID(crypto.HashBytes(fastrand.Bytes(12))),
+		ID: modules.ConsensusChangeID(crypto.HashBytes(frand.Bytes(12))),
 	})
 }
 
@@ -160,8 +160,8 @@ func TestServerThreadSafety(t *testing.T) {
 		sks[i] = sk
 	}
 	newAnnouncement := func() []byte {
-		addr := modules.NetAddress("1.1.1.1:1" + strconv.Itoa(fastrand.Intn(10)))
-		sk := sks[fastrand.Intn(len(sks))]
+		addr := modules.NetAddress("1.1.1.1:1" + strconv.Itoa(frand.Intn(10)))
+		sk := sks[frand.Intn(len(sks))]
 		spk := types.Ed25519PublicKey(sk.PublicKey())
 		ann, err := modules.CreateAnnouncement(addr, spk, sk)
 		if err != nil {
@@ -175,7 +175,7 @@ func TestServerThreadSafety(t *testing.T) {
 		func() { cs.sendHostAnnouncement(newAnnouncement()) },
 		func() { getSynced(ss) },
 		func() { getHeight(ss) },
-		func() { getHost(ss, types.Ed25519PublicKey(sks[fastrand.Intn(len(sks))].PublicKey())) },
+		func() { getHost(ss, types.Ed25519PublicKey(sks[frand.Intn(len(sks))].PublicKey())) },
 	}
 	var wg sync.WaitGroup
 	wg.Add(len(funcs))
@@ -183,7 +183,7 @@ func TestServerThreadSafety(t *testing.T) {
 		go func(fn func()) {
 			defer wg.Done()
 			for i := 0; i < 10; i++ {
-				time.Sleep(time.Duration(fastrand.Intn(10)) * time.Millisecond)
+				time.Sleep(time.Duration(frand.Intn(10)) * time.Millisecond)
 				fn()
 			}
 		}(fn)
