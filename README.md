@@ -8,7 +8,7 @@ shard
 basically nothing else. When run as a public service, it provides these
 announcements to clients, sparing them the trouble of running a node themselves.
 
-Host announcements are the mechanism by which Sia host associate their public
+Host announcements are the mechanism by which Sia hosts associate their public
 key with their current IP address or domain name. Subsequent announcements for
 the same public key replace earlier ones. A `shard` server is thus analogous to
 a DNS resolver: it resolves public keys to network addresses.
