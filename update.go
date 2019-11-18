@@ -58,8 +58,10 @@ func (s *SHARD) ProcessConsensusChange(cc modules.ConsensusChange) {
 
 	// add host announcements
 	for pk, ann := range newhosts {
+		if _, seen := s.hosts[pk]; !seen {
+			s.hostKeys = append(s.hostKeys, pk)
+		}
 		s.hosts[pk] = ann
-		s.hostKeys = append(s.hostKeys, pk)
 	}
 	sort.Strings(s.hostKeys)
 
