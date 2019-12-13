@@ -10,40 +10,42 @@ import (
 	"gitlab.com/NebulousLabs/Sia/types"
 )
 
+// PersistData contains the data that a Relay loads on startup.
 type PersistData struct {
 	Height     types.BlockHeight
 	Hosts      map[string][]byte
 	LastChange modules.ConsensusChangeID
 }
 
+// A Persister can save and load PersistData.
 type Persister interface {
 	Save(PersistData) error
 	Load(*PersistData) error
 }
 
-func (s *SHARD) save() error {
-	return s.persist.Save(PersistData{
-		Height:     s.height,
-		Hosts:      s.hosts,
-		LastChange: s.lastChange,
+func (r *Relay) save() error {
+	return r.persist.Save(PersistData{
+		Height:     r.height,
+		Hosts:      r.hosts,
+		LastChange: r.lastChange,
 	})
 }
 
-func (s *SHARD) load() error {
+func (r *Relay) load() error {
 	var data PersistData
-	if err := s.persist.Load(&data); err != nil && !os.IsNotExist(err) {
+	if err := r.persist.Load(&data); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if data.Hosts == nil {
 		data.Hosts = make(map[string][]byte)
 	}
-	s.height = data.Height
-	s.hosts = data.Hosts
-	s.lastChange = data.LastChange
-	for pk := range s.hosts {
-		s.hostKeys = append(s.hostKeys, pk)
+	r.height = data.Height
+	r.hosts = data.Hosts
+	r.lastChange = data.LastChange
+	for pk := range r.hosts {
+		r.hostKeys = append(r.hostKeys, pk)
 	}
-	sort.Strings(s.hostKeys)
+	sort.Strings(r.hostKeys)
 	return nil
 }
 
@@ -52,18 +54,23 @@ var meta = persist.Metadata{
 	Version: "0.1.0",
 }
 
+// JSONPersist implements Persister using a JSON file stored on disk.
 type JSONPersist struct {
 	path string
 }
 
+// Save implements Persister.
 func (p JSONPersist) Save(data PersistData) error {
 	return persist.SaveJSON(meta, data, p.path)
 }
 
+// Load implements Persister.
 func (p JSONPersist) Load(data *PersistData) error {
 	return persist.LoadJSON(meta, data, p.path)
 }
 
+// NewJSONPersist returns a new JSONPersist that writes to the specified
+// directory.
 func NewJSONPersist(dir string) JSONPersist {
 	return JSONPersist{filepath.Join(dir, "persist.json")}
 }

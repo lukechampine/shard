@@ -1,4 +1,4 @@
-package main
+package shard
 
 import (
 	"errors"
@@ -14,7 +14,6 @@ import (
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/types"
 	"lukechampine.com/frand"
-	"lukechampine.com/shard"
 )
 
 type mockCS struct {
@@ -45,15 +44,15 @@ func (m *mockCS) sendHostAnnouncement(ann []byte) {
 }
 
 type memPersist struct {
-	shard.PersistData
+	PersistData
 }
 
-func (p *memPersist) Save(data shard.PersistData) error {
+func (p *memPersist) Save(data PersistData) error {
 	p.PersistData = data
 	return nil
 }
 
-func (p *memPersist) Load(data *shard.PersistData) error {
+func (p *memPersist) Load(data *PersistData) error {
 	*data = p.PersistData
 	return nil
 }
@@ -62,6 +61,7 @@ func httpGet(h http.Handler, route string) ([]byte, error) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET", route, nil))
 	r := rec.Result()
+	defer r.Body.Close()
 	body, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != 200 {
 		return nil, errors.New(string(body))
@@ -93,11 +93,11 @@ func getHost(h http.Handler, spk types.SiaPublicKey) ([]byte, error) {
 func TestServer(t *testing.T) {
 	cs := new(mockCS)
 	p := new(memPersist)
-	shard, err := shard.New(cs, p)
+	relay, err := NewRelay(cs, p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ss := newServer(shard)
+	ss := NewServer(relay)
 
 	// synced should be true
 	if synced, err := getSynced(ss); err != nil {
@@ -147,11 +147,11 @@ func TestServer(t *testing.T) {
 func TestServerThreadSafety(t *testing.T) {
 	cs := new(mockCS)
 	p := new(memPersist)
-	shard, err := shard.New(cs, p)
+	relay, err := NewRelay(cs, p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ss := newServer(shard)
+	ss := NewServer(relay)
 
 	// generate announcements from 3 hosts, ensuring overlap
 	sks := make([]crypto.SecretKey, 3)
@@ -194,11 +194,11 @@ func TestServerThreadSafety(t *testing.T) {
 func BenchmarkServer(b *testing.B) {
 	cs := new(mockCS)
 	p := new(memPersist)
-	shard, err := shard.New(cs, p)
+	relay, err := NewRelay(cs, p)
 	if err != nil {
 		b.Fatal(err)
 	}
-	ss := newServer(shard)
+	ss := NewServer(relay)
 
 	// add a host
 	addr := modules.NetAddress("1.1.1.1:1")

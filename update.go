@@ -39,45 +39,46 @@ func addHostAnnouncements(b types.Block, hosts map[string][]byte) {
 	}
 }
 
-func (s *SHARD) ProcessConsensusChange(cc modules.ConsensusChange) {
+// ProcessConsensusChange implements modules.ConsensusSetSubscriber.
+func (r *Relay) ProcessConsensusChange(cc modules.ConsensusChange) {
 	// find host announcements
 	newhosts := make(map[string][]byte)
 	for _, block := range cc.AppliedBlocks {
 		addHostAnnouncements(block, newhosts)
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	// update height
-	s.height += types.BlockHeight(len(cc.AppliedBlocks))
-	s.height -= types.BlockHeight(len(cc.RevertedBlocks))
-	if s.lastChange == modules.ConsensusChangeBeginning {
-		s.height-- // genesis block is height 0
+	r.height += types.BlockHeight(len(cc.AppliedBlocks))
+	r.height -= types.BlockHeight(len(cc.RevertedBlocks))
+	if r.lastChange == modules.ConsensusChangeBeginning {
+		r.height-- // genesis block is height 0
 	}
 
 	// add host announcements
 	for pk, ann := range newhosts {
-		if _, seen := s.hosts[pk]; !seen {
-			s.hostKeys = append(s.hostKeys, pk)
+		if _, seen := r.hosts[pk]; !seen {
+			r.hostKeys = append(r.hostKeys, pk)
 		}
-		s.hosts[pk] = ann
+		r.hosts[pk] = ann
 	}
-	sort.Strings(s.hostKeys)
+	sort.Strings(r.hostKeys)
 
 	// mark this set of blocks as processed
-	s.lastChange = cc.ID
+	r.lastChange = cc.ID
 
 	// Queue a save in the near future. If there is already a queued save, do
 	// nothing. This strategy ensures that we eventually save new hosts, but
 	// avoids saving after every block.
-	if len(newhosts) > 0 && !s.queuedSave {
-		s.queuedSave = true
+	if len(newhosts) > 0 && !r.queuedSave {
+		r.queuedSave = true
 		time.AfterFunc(2*time.Minute, func() {
-			s.mu.Lock()
-			s.save()
-			s.queuedSave = false
-			s.mu.Unlock()
+			r.mu.Lock()
+			r.save()
+			r.queuedSave = false
+			r.mu.Unlock()
 		})
 	}
 }

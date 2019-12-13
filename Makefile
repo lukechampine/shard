@@ -29,6 +29,7 @@ lint:
 		--disable=gocritic \
 		--disable=dupl \
 		--disable=errcheck \
+		--disable=wsl \
 		--disable=gochecknoglobals \
 		--skip-dirs=internal \
 		./...

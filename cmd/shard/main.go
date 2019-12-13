@@ -2,59 +2,16 @@ package main
 
 import (
 	"flag"
-	"io"
 	"log"
 	"net/http"
 	"path/filepath"
 	"runtime"
-	"strconv"
 
-	"github.com/julienschmidt/httprouter"
 	"gitlab.com/NebulousLabs/Sia/build"
 	"gitlab.com/NebulousLabs/Sia/modules/consensus"
 	"gitlab.com/NebulousLabs/Sia/modules/gateway"
 	"lukechampine.com/shard"
 )
-
-type server struct {
-	shard *shard.SHARD
-}
-
-func (s *server) handlerSynced(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	io.WriteString(w, strconv.FormatBool(s.shard.Synced()))
-}
-
-func (s *server) handlerHeight(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	io.WriteString(w, strconv.Itoa(int(s.shard.Height())))
-}
-
-func (s *server) handlerHost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	pubkey, unique := s.shard.Host(ps.ByName("prefix"))
-	if pubkey == "" {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	} else if !unique {
-		http.Error(w, "ambiguous pubkey", http.StatusGone)
-		return
-	}
-	ann, ok := s.shard.HostAnnouncement(pubkey)
-	if !ok {
-		// unlikely, but possible if an announcement is reverted after the call
-		// to Host
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-	w.Write(ann)
-}
-
-func newServer(shard *shard.SHARD) http.Handler {
-	srv := &server{shard}
-	mux := httprouter.New()
-	mux.GET("/synced", srv.handlerSynced)
-	mux.GET("/height", srv.handlerHeight)
-	mux.GET("/host/:prefix", srv.handlerHost)
-	return mux
-}
 
 var (
 	// to be supplied at build time
@@ -82,16 +39,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cs, err := consensus.New(g, true, filepath.Join(*persistDir, "consensus"))
-	if err != nil {
+	cs, errCh := consensus.New(g, true, filepath.Join(*persistDir, "consensus"))
+	if err := <-errCh; err != nil {
 		log.Fatal(err)
 	}
-	shard, err := shard.New(cs, shard.NewJSONPersist(*persistDir))
+	relay, err := shard.NewRelay(cs, shard.NewJSONPersist(*persistDir))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	srv := newServer(shard)
+	srv := shard.NewServer(relay)
 	log.Printf("Listening on %v...", *apiAddr)
 	log.Fatal(http.ListenAndServe(*apiAddr, srv))
 }
