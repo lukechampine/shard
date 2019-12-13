@@ -8,12 +8,13 @@ import (
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/persist"
 	"gitlab.com/NebulousLabs/Sia/types"
+	"lukechampine.com/us/hostdb"
 )
 
 // PersistData contains the data that a Relay loads on startup.
 type PersistData struct {
 	Height     types.BlockHeight
-	Hosts      map[string][]byte
+	Hosts      map[hostdb.HostPublicKey][]byte
 	LastChange modules.ConsensusChangeID
 }
 
@@ -37,7 +38,7 @@ func (r *Relay) load() error {
 		return err
 	}
 	if data.Hosts == nil {
-		data.Hosts = make(map[string][]byte)
+		data.Hosts = make(map[hostdb.HostPublicKey][]byte)
 	}
 	r.height = data.Height
 	r.hosts = data.Hosts
@@ -45,7 +46,9 @@ func (r *Relay) load() error {
 	for pk := range r.hosts {
 		r.hostKeys = append(r.hostKeys, pk)
 	}
-	sort.Strings(r.hostKeys)
+	sort.Slice(r.hostKeys, func(i, j int) bool {
+		return r.hostKeys[i] < r.hostKeys[j]
+	})
 	return nil
 }
 

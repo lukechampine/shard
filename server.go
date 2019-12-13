@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	"lukechampine.com/us/hostdb"
 )
 
 type server struct {
@@ -21,7 +22,7 @@ func (s *server) handlerHeight(w http.ResponseWriter, req *http.Request, _ httpr
 }
 
 func (s *server) handlerHost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	pubkey, unique := s.relay.Host(ps.ByName("prefix"))
+	pubkey, unique := s.relay.Host(hostdb.HostPublicKey(ps.ByName("prefix")))
 	if pubkey == "" {
 		w.WriteHeader(http.StatusNoContent)
 		return

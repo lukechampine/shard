@@ -8,6 +8,7 @@ import (
 	"gitlab.com/NebulousLabs/Sia/encoding"
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/types"
+	"lukechampine.com/us/hostdb"
 )
 
 type hostAnnouncement struct {
@@ -15,7 +16,7 @@ type hostAnnouncement struct {
 	Signature crypto.Signature
 }
 
-func addHostAnnouncements(b types.Block, hosts map[string][]byte) {
+func addHostAnnouncements(b types.Block, hosts map[hostdb.HostPublicKey][]byte) {
 	for _, t := range b.Transactions {
 		for _, arb := range t.ArbitraryData {
 			// decode announcement
@@ -34,7 +35,7 @@ func addHostAnnouncements(b types.Block, hosts map[string][]byte) {
 				continue
 			}
 			// make a copy -- don't want to store pointers to consensus memory
-			hosts[ha.PublicKey.String()] = append([]byte(nil), arb...)
+			hosts[hostdb.HostKeyFromSiaPublicKey(ha.PublicKey)] = append([]byte(nil), arb...)
 		}
 	}
 }
@@ -42,7 +43,7 @@ func addHostAnnouncements(b types.Block, hosts map[string][]byte) {
 // ProcessConsensusChange implements modules.ConsensusSetSubscriber.
 func (r *Relay) ProcessConsensusChange(cc modules.ConsensusChange) {
 	// find host announcements
-	newhosts := make(map[string][]byte)
+	newhosts := make(map[hostdb.HostPublicKey][]byte)
 	for _, block := range cc.AppliedBlocks {
 		addHostAnnouncements(block, newhosts)
 	}
@@ -64,7 +65,9 @@ func (r *Relay) ProcessConsensusChange(cc modules.ConsensusChange) {
 		}
 		r.hosts[pk] = ann
 	}
-	sort.Strings(r.hostKeys)
+	sort.Slice(r.hostKeys, func(i, j int) bool {
+		return r.hostKeys[i] < r.hostKeys[j]
+	})
 
 	// mark this set of blocks as processed
 	r.lastChange = cc.ID

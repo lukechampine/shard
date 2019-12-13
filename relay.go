@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/types"
+	"lukechampine.com/us/hostdb"
 )
 
 // A ConsensusSet provides updates to the Sia blockchain.
@@ -20,8 +21,8 @@ type ConsensusSet interface {
 // available for queries.
 type Relay struct {
 	height     types.BlockHeight
-	hosts      map[string][]byte // pubkey -> announcement
-	hostKeys   []string          // sorted
+	hosts      map[hostdb.HostPublicKey][]byte // pubkey -> announcement
+	hostKeys   []hostdb.HostPublicKey          // sorted
 	lastChange modules.ConsensusChangeID
 	queuedSave bool
 	cs         ConsensusSet
@@ -45,7 +46,7 @@ func (r *Relay) Height() types.BlockHeight {
 // Host looks up a host using the given prefix of the host's public key. If more
 // than one host shares the prefix, it returns false. If no host is found, it
 // returns an empty string.
-func (r *Relay) Host(prefix string) (pk string, unique bool) {
+func (r *Relay) Host(prefix hostdb.HostPublicKey) (pk hostdb.HostPublicKey, unique bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, ok := r.hosts[prefix]; ok {
@@ -58,18 +59,18 @@ func (r *Relay) Host(prefix string) (pk string, unique bool) {
 		}
 		return hk[:len(prefix)] >= prefix
 	})
-	if i == len(r.hostKeys) || !strings.HasPrefix(r.hostKeys[i], prefix) {
+	if i == len(r.hostKeys) || !strings.HasPrefix(string(r.hostKeys[i]), string(prefix)) {
 		return "", false
 	}
 	pk = r.hostKeys[i]
-	unique = i+1 == len(r.hostKeys) || !strings.HasPrefix(r.hostKeys[i+1], prefix)
+	unique = i+1 == len(r.hostKeys) || !strings.HasPrefix(string(r.hostKeys[i+1]), string(prefix))
 	return
 }
 
 // HostAnnouncement returns the raw bytes of the announcement recorded in the
 // Sia blockchain for the given host public key, or false if the host is not
 // found.
-func (r *Relay) HostAnnouncement(pubkey string) ([]byte, bool) {
+func (r *Relay) HostAnnouncement(pubkey hostdb.HostPublicKey) ([]byte, bool) {
 	r.mu.Lock()
 	ann, ok := r.hosts[pubkey]
 	r.mu.Unlock()
@@ -79,7 +80,7 @@ func (r *Relay) HostAnnouncement(pubkey string) ([]byte, bool) {
 // NewRelay initializes a Relay using the provided ConsensusSet and Persister.
 func NewRelay(cs ConsensusSet, p Persister) (*Relay, error) {
 	r := &Relay{
-		hosts:   make(map[string][]byte),
+		hosts:   make(map[hostdb.HostPublicKey][]byte),
 		cs:      cs,
 		persist: p,
 	}
