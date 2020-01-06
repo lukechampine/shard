@@ -40,9 +40,7 @@ func main() {
 		log.Fatal(err)
 	}
 	cs, errCh := consensus.New(g, true, filepath.Join(*persistDir, "consensus"))
-	if err := <-errCh; err != nil {
-		log.Fatal(err)
-	}
+	handleAsyncErr(errCh)
 	relay, err := shard.NewRelay(cs, shard.NewJSONPersist(*persistDir))
 	if err != nil {
 		log.Fatal(err)
@@ -51,4 +49,18 @@ func main() {
 	srv := shard.NewServer(relay)
 	log.Printf("Listening on %v...", *apiAddr)
 	log.Fatal(http.ListenAndServe(*apiAddr, srv))
+}
+
+func handleAsyncErr(errCh <-chan error) {
+	select {
+	case err := <-errCh:
+		log.Fatal(err)
+	default:
+	}
+	go func() {
+		err := <-errCh
+		if err != nil {
+			log.Println("WARNING: consensus initialization returned an error:", err)
+		}
+	}()
 }
