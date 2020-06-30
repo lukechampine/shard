@@ -14,6 +14,7 @@ import (
 	"gitlab.com/NebulousLabs/Sia/encoding"
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/types"
+	"lukechampine.com/us/ed25519hash"
 	"lukechampine.com/us/hostdb"
 )
 
@@ -76,7 +77,7 @@ func (c *Client) ResolveHostKey(pubkey hostdb.HostPublicKey) (modules.NetAddress
 	if err != nil {
 		return "", err
 	}
-	if !pubkey.VerifyHash(crypto.HashObject(ha), sig[:]) {
+	if !ed25519hash.Verify(pubkey.Ed25519(), crypto.HashObject(ha), sig[:]) {
 		return "", errors.New("invalid signature")
 	}
 	return ha.NetAddress, err
