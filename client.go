@@ -102,12 +102,8 @@ func (c *Client) LookupHost(prefix string) (hostdb.HostPublicKey, error) {
 	return hostdb.HostKeyFromSiaPublicKey(ha.PublicKey), nil
 }
 
-// NewClient returns a Client that communicates with the SHARD
-// server at the specified address.
+// NewClient returns a Client that communicates with the SHARD server at the
+// specified address.
 func NewClient(addr string) *Client {
-	// use https by default
-	if !strings.HasPrefix(addr, "https://") && !strings.HasPrefix(addr, "http://") {
-		addr = "https://" + addr
-	}
 	return &Client{addr: addr}
 }
