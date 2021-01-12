@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/encoding"
 	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/NebulousLabs/encoding"
 	"lukechampine.com/us/ed25519hash"
 	"lukechampine.com/us/hostdb"
 )
