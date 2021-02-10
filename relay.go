@@ -30,6 +30,13 @@ type Relay struct {
 	mu         sync.Mutex
 }
 
+func (r *Relay) reset() {
+	r.height = 0
+	r.hosts = make(map[hostdb.HostPublicKey][]byte)
+	r.hostKeys = nil
+	r.lastChange = modules.ConsensusChangeBeginning
+}
+
 // Synced returns whether the Relay's blockchain is synced with the Sia network.
 func (r *Relay) Synced() bool {
 	return r.cs.Synced()
@@ -90,7 +97,7 @@ func NewRelay(cs ConsensusSet, p Persister) (*Relay, error) {
 
 	// subscribe to consensus
 	if err := cs.ConsensusSetSubscribe(r, r.lastChange, nil); err != nil {
-		r.lastChange = modules.ConsensusChangeBeginning
+		r.reset()
 		if err := cs.ConsensusSetSubscribe(r, r.lastChange, nil); err != nil {
 			return nil, err
 		}
