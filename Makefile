@@ -38,4 +38,4 @@ lint:
 		--skip-dirs=internal \
 		./...
 
-.PHONY: all dev test test-long bench lint
+.PHONY: all static dev test test-long bench lint
